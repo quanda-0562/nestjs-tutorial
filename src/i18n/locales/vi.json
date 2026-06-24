@@ -1,0 +1,10 @@
+{
+  "welcome": "Chào mừng đến NestJS",
+  "hello": "Xin chào {{name}}",
+  "goodbye": "Tạm biệt",
+  "common": {
+    "success": "Thành công",
+    "error": "Lỗi",
+    "loading": "Đang tải..."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "welcome": "Welcome to NestJS",
+  "hello": "Hello {{name}}",
+  "goodbye": "Goodbye",
+  "common": {
+    "success": "Success",
+    "error": "Error",
+    "loading": "Loading..."
+  }
+}
