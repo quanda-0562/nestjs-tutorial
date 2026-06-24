@@ -11,7 +11,7 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
     host: configService.get<string>('DATABASE_HOST', 'localhost'),
     port: configService.get<number>('DATABASE_PORT', 5432),
     username: configService.get<string>('DATABASE_USER', 'postgres'),
-    password: configService.get<string>('DATABASE_PASSWORD', 'postgres'),
+    password: configService.get<string>('DATABASE_PASSWORD', ''),
     database: configService.get<string>('DATABASE_NAME', 'nestjs_tutorial'),
     entities: [User],
     synchronize: nodeEnv === 'test',
