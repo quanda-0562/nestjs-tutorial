@@ -6,5 +6,18 @@
     "success": "Thành công",
     "error": "Lỗi",
     "loading": "Đang tải..."
+  },
+  "auth": {
+    "login": "Đăng nhập người dùng",
+    "loginSuccess": "Đăng nhập thành công",
+    "invalidEmailOrPassword": "Email hoặc mật khẩu không hợp lệ",
+    "emailRequired": "Email là bắt buộc",
+    "passwordRequired": "Mật khẩu là bắt buộc",
+    "emailAndPasswordRequired": "Email và mật khẩu là bắt buộc",
+    "invalidEmail": "Email phải là một địa chỉ email hợp lệ",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
+    "invalidCredentials": "Thông tin đăng nhập không hợp lệ",
+    "userNotFound": "Người dùng không tồn tại",
+    "unauthorized": "Không được phép"
   }
 }

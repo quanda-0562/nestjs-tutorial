@@ -1,13 +1,15 @@
 # Users Module - Authentication
 
 ## Overview
-This module provides user authentication functionality with JWT token support.
+This module provides user authentication functionality with JWT token support and multi-language error messages using i18n.
 
 ## Features
 - User login with email and password
 - JWT token generation
 - Password hashing with bcrypt
 - Request validation with class-validator
+- Multi-language error messages (English & Vietnamese)
+- Comprehensive unit and e2e tests
 
 ## Endpoints
 
@@ -19,12 +21,12 @@ Authenticates user and returns JWT token.
 {
   "user": {
     "email": "jake@jake.jake",
-    "password": "jakejake"
+    "password": "jakejake12"
   }
 }
 ```
 
-**Response (200 OK):**
+**Response (201 Created):**
 ```json
 {
   "user": {
@@ -37,13 +39,50 @@ Authenticates user and returns JWT token.
 ```
 
 **Error Responses:**
-- `400 Bad Request`: Missing or invalid required fields
+- `400 Bad Request`: Missing or invalid required fields (e.g., short password, invalid email format)
 - `401 Unauthorized`: Invalid email or password
+
+## Multi-Language Support (i18n)
+
+Error messages are automatically translated based on the `language` header:
+- `language: en` - English
+- `language: vi` - Vietnamese (Tiếng Việt)
+
+### Supported Error Messages
+```
+auth.emailAndPasswordRequired - Email and password are required
+auth.invalidEmailOrPassword - Invalid email or password
+auth.invalidEmail - Email must be a valid email address
+auth.passwordTooShort - Password must be at least 8 characters
+auth.unauthorized - Unauthorized
+```
+
+### Example with Language Header
+```bash
+curl -X POST http://localhost:3000/api/users/login \
+  -H "Content-Type: application/json" \
+  -H "language: vi" \
+  -d '{
+    "user": {
+      "email": "jake@jake.jake",
+      "password": "wrongpassword"
+    }
+  }'
+```
+
+Response (Vietnamese):
+```json
+{
+  "statusCode": 401,
+  "message": "Email hoặc mật khẩu không hợp lệ",
+  "error": "Unauthorized"
+}
+```
 
 ## Test Credentials
 Default test user is pre-created:
 - Email: `jake@jake.jake`
-- Password: `jakejake`
+- Password: `jakejake12`
 
 ## Usage Example
 
@@ -51,10 +90,11 @@ Default test user is pre-created:
 ```bash
 curl -X POST http://localhost:3000/api/users/login \
   -H "Content-Type: application/json" \
+  -H "language: en" \
   -d '{
     "user": {
       "email": "jake@jake.jake",
-      "password": "jakejake"
+      "password": "jakejake12"
     }
   }'
 ```
@@ -63,11 +103,14 @@ curl -X POST http://localhost:3000/api/users/login \
 ```javascript
 const response = await fetch('http://localhost:3000/api/users/login', {
   method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+  headers: {
+    'Content-Type': 'application/json',
+    'language': 'en'  // or 'vi' for Vietnamese
+  },
   body: JSON.stringify({
     user: {
       email: 'jake@jake.jake',
-      password: 'jakejake'
+      password: 'jakejake12'
     }
   })
 });

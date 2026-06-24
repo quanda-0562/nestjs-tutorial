@@ -6,5 +6,18 @@
     "success": "Success",
     "error": "Error",
     "loading": "Loading..."
+  },
+  "auth": {
+    "login": "User login",
+    "loginSuccess": "Login successful",
+    "invalidEmailOrPassword": "Invalid email or password",
+    "emailRequired": "Email is required",
+    "passwordRequired": "Password is required",
+    "emailAndPasswordRequired": "Email and password are required",
+    "invalidEmail": "Email must be a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "invalidCredentials": "Invalid credentials",
+    "userNotFound": "User not found",
+    "unauthorized": "Unauthorized"
   }
 }

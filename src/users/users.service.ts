@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import i18next from 'i18next';
 import { User } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
 
@@ -48,22 +49,24 @@ export class UsersService {
     return user;
   }
 
-  async login(email: string, password: string): Promise<{ user: UserDto }> {
+  async login(email: string, password: string, i18n?: typeof i18next): Promise<{ user: UserDto }> {
+    const t = i18n?.t || ((key: string) => key);
+
     // Validate input
     if (!email || !password) {
-      throw new BadRequestException('Email and password are required');
+      throw new BadRequestException(t('auth.emailAndPasswordRequired'));
     }
 
     // Find user by email
     const user = this.users.get(email);
     if (!user) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException(t('auth.invalidEmailOrPassword'));
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException(t('auth.invalidEmailOrPassword'));
     }
 
     // Generate JWT token
@@ -91,4 +94,5 @@ export class UsersService {
     return null;
   }
 }
+
 

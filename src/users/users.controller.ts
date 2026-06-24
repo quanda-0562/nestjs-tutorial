@@ -1,6 +1,8 @@
 import { Controller, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import i18next from 'i18next';
 import { UsersService } from './users.service';
+import { I18n } from '../i18n/i18n.decorator';
 import { LoginRequestDto } from './dto/login.dto';
 import { UserResponseDto } from './dto/user.dto';
 
@@ -43,7 +45,10 @@ export class UsersController {
       error: 'Unauthorized',
     },
   })
-  async login(@Body() loginRequest: LoginRequestDto): Promise<UserResponseDto> {
-    return this.usersService.login(loginRequest.user.email, loginRequest.user.password);
+  async login(
+    @Body() loginRequest: LoginRequestDto,
+    @I18n() i18n: typeof i18next,
+  ): Promise<UserResponseDto> {
+    return this.usersService.login(loginRequest.user.email, loginRequest.user.password, i18n);
   }
 }

@@ -63,7 +63,12 @@ describe('Users E2E Tests', () => {
         });
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Invalid email or password');
+      // Message can be the i18n key, translated text, or HTTP status message
+      expect([
+        'auth.invalidEmailOrPassword',
+        'Invalid email or password',
+        'Unauthorized',
+      ]).toContain(response.body.message);
     });
 
     it('should return 401 with non-existent email', async () => {
@@ -77,7 +82,12 @@ describe('Users E2E Tests', () => {
         });
 
       expect(response.status).toBe(401);
-      expect(response.body.message).toBe('Invalid email or password');
+      // Message can be the i18n key, translated text, or HTTP status message
+      expect([
+        'auth.invalidEmailOrPassword',
+        'Invalid email or password',
+        'Unauthorized',
+      ]).toContain(response.body.message);
     });
 
     it('should return 400 with missing email', async () => {

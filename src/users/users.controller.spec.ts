@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import i18next from 'i18next';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { LoginRequestDto } from './dto/login.dto';
@@ -7,6 +8,10 @@ import { LoginRequestDto } from './dto/login.dto';
 describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
+
+  const mockI18n = {
+    t: jest.fn((key: string) => key),
+  } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,7 +31,7 @@ describe('UsersController', () => {
   });
 
   describe('login', () => {
-    it('should call service.login with correct credentials', async () => {
+    it('should call service.login with correct credentials and i18n', async () => {
       const loginRequest: LoginRequestDto = {
         user: {
           email: 'jake@jake.jake',
@@ -45,9 +50,9 @@ describe('UsersController', () => {
 
       (service.login as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await controller.login(loginRequest);
+      const result = await controller.login(loginRequest, mockI18n);
 
-      expect(service.login).toHaveBeenCalledWith('jake@jake.jake', 'jakejake');
+      expect(service.login).toHaveBeenCalledWith('jake@jake.jake', 'jakejake', mockI18n);
       expect(result).toEqual(mockResponse);
     });
 
@@ -70,7 +75,7 @@ describe('UsersController', () => {
 
       (service.login as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await controller.login(loginRequest);
+      const result = await controller.login(loginRequest, mockI18n);
 
       expect(result.user).toBeDefined();
       expect(result.user.email).toBe('jake@jake.jake');
@@ -89,7 +94,7 @@ describe('UsersController', () => {
         new UnauthorizedException('Invalid email or password'),
       );
 
-      await expect(controller.login(loginRequest)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(loginRequest, mockI18n)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should propagate BadRequestException from service', async () => {
@@ -104,7 +109,7 @@ describe('UsersController', () => {
         new BadRequestException('Email and password are required'),
       );
 
-      await expect(controller.login(loginRequest)).rejects.toThrow(BadRequestException);
+      await expect(controller.login(loginRequest, mockI18n)).rejects.toThrow(BadRequestException);
     });
   });
 });
