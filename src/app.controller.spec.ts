@@ -16,13 +16,7 @@ describe('AppController', () => {
 
   describe('root', () => {
     it('should return an object with message and greeting', () => {
-      const result = appController.getHello(undefined, {
-        t: (key: string) => {
-          if (key === 'welcome') return 'Welcome to NestJS';
-          if (key === 'hello') return 'Hello Developer';
-          return key;
-        },
-      } as any);
+      const result = appController.getHello('Developer');
 
       expect(result).toHaveProperty('message');
       expect(result).toHaveProperty('greeting');

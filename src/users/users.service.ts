@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import i18next from 'i18next';
+import { t } from '../common/utils/i18n.utils';
 import { User } from './entities/user.entity';
 import { UserDto } from './dto/user.dto';
 
@@ -37,28 +37,7 @@ export class UsersService {
     }
   }
 
-  async createUser(email: string, password: string, username?: string): Promise<User> {
-    const existingUser = await this.usersRepository.findOne({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new BadRequestException('User with this email already exists');
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = this.usersRepository.create({
-      email,
-      username,
-      passwordHash,
-    });
-
-    return this.usersRepository.save(user);
-  }
-
-  async login(email: string, password: string, i18n?: typeof i18next): Promise<{ user: UserDto }> {
-    const t = i18n?.t || ((key: string) => key);
-
+  async login(email: string, password: string): Promise<{ user: UserDto }> {
     // Validate input
     if (!email || !password) {
       throw new BadRequestException(t('auth.emailAndPasswordRequired'));
@@ -93,12 +72,6 @@ export class UsersService {
         token,
       },
     };
-  }
-
-  async validateUser(id: number): Promise<User | null> {
-    return this.usersRepository.findOne({
-      where: { id },
-    });
   }
 }
 

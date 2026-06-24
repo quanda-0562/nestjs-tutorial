@@ -101,20 +101,4 @@ describe('UsersService', () => {
     });
   });
 
-  describe('validateUser', () => {
-    it('should return user when valid id is provided', async () => {
-      usersRepository.findOne.mockResolvedValue(mockUser);
-
-      const user = await service.validateUser(1);
-      expect(user).toBeDefined();
-      expect(user?.email).toBe('jake@jake.jake');
-    });
-
-    it('should return null for non-existent user id', async () => {
-      usersRepository.findOne.mockResolvedValue(null);
-
-      const user = await service.validateUser(999);
-      expect(user).toBeNull();
-    });
-  });
 });

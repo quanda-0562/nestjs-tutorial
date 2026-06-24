@@ -31,7 +31,7 @@ describe('UsersController', () => {
   });
 
   describe('login', () => {
-    it('should call service.login with correct credentials and i18n', async () => {
+    it('should call service.login with correct credentials', async () => {
       const loginRequest: LoginRequestDto = {
         user: {
           email: 'jake@jake.jake',
@@ -50,9 +50,9 @@ describe('UsersController', () => {
 
       (service.login as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await controller.login(loginRequest, mockI18n);
+      const result = await controller.login(loginRequest);
 
-      expect(service.login).toHaveBeenCalledWith('jake@jake.jake', 'jakejake', mockI18n);
+      expect(service.login).toHaveBeenCalledWith('jake@jake.jake', 'jakejake');
       expect(result).toEqual(mockResponse);
     });
 
@@ -75,7 +75,7 @@ describe('UsersController', () => {
 
       (service.login as jest.Mock).mockResolvedValue(mockResponse);
 
-      const result = await controller.login(loginRequest, mockI18n);
+      const result = await controller.login(loginRequest);
 
       expect(result.user).toBeDefined();
       expect(result.user.email).toBe('jake@jake.jake');
@@ -94,7 +94,7 @@ describe('UsersController', () => {
         new UnauthorizedException('Invalid email or password'),
       );
 
-      await expect(controller.login(loginRequest, mockI18n)).rejects.toThrow(UnauthorizedException);
+      await expect(controller.login(loginRequest)).rejects.toThrow(UnauthorizedException);
     });
 
     it('should propagate BadRequestException from service', async () => {
@@ -109,7 +109,7 @@ describe('UsersController', () => {
         new BadRequestException('Email and password are required'),
       );
 
-      await expect(controller.login(loginRequest, mockI18n)).rejects.toThrow(BadRequestException);
+      await expect(controller.login(loginRequest)).rejects.toThrow(BadRequestException);
     });
   });
 });

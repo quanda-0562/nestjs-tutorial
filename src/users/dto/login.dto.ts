@@ -1,5 +1,6 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsString, MinLength, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 
 export class UserLoginDto {
   @ApiProperty({
@@ -14,7 +15,7 @@ export class UserLoginDto {
     description: 'User password',
   })
   @IsString()
-  @MinLength(8)
+  @MinLength(8, { message: 'auth.passwordTooShort' })
   password!: string;
 }
 
@@ -23,5 +24,7 @@ export class LoginRequestDto {
     type: UserLoginDto,
     description: 'User credentials',
   })
+  @ValidateNested()
+  @Type(() => UserLoginDto)
   user!: UserLoginDto;
 }
