@@ -18,6 +18,7 @@
     "passwordTooShort": "Password must be at least 8 characters",
     "invalidCredentials": "Invalid credentials",
     "userNotFound": "User not found",
-    "unauthorized": "Unauthorized"
+    "unauthorized": "Unauthorized",
+    "emailAlreadyExists": "Email already exists"
   }
 }

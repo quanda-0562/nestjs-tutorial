@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
@@ -101,4 +101,164 @@ describe('UsersService', () => {
     });
   });
 
+  describe('create', () => {
+    it('should successfully create a new user with valid data', async () => {
+      const createUserDto = {
+        email: 'newuser@example.com',
+        username: 'NewUser',
+        password: 'password123',
+      };
+
+      const newUser: User = {
+        id: 2,
+        email: 'newuser@example.com',
+        username: 'NewUser',
+        passwordHash: 'hashed_password',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      usersRepository.findOne.mockResolvedValue(null); // Email doesn't exist
+      usersRepository.create.mockReturnValue(newUser);
+      usersRepository.save.mockResolvedValue(newUser);
+
+      const result = await service.create(createUserDto);
+
+      expect(result).toHaveProperty('user');
+      expect(result.user.id).toBe(2);
+      expect(result.user.email).toBe('newuser@example.com');
+      expect(result.user.username).toBe('NewUser');
+      expect(result.user).toHaveProperty('token');
+      expect(result.user.token).toBe('test-token');
+    });
+
+    it('should hash the password before saving', async () => {
+      const createUserDto = {
+        email: 'hashtest@example.com',
+        username: 'HashTest',
+        password: 'plainpassword123',
+      };
+
+      const newUser: User = {
+        id: 3,
+        email: 'hashtest@example.com',
+        username: 'HashTest',
+        passwordHash: 'hashed_password',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      usersRepository.findOne.mockResolvedValue(null);
+      usersRepository.create.mockReturnValue(newUser);
+      usersRepository.save.mockResolvedValue(newUser);
+
+      await service.create(createUserDto);
+
+      expect(bcrypt.hash).toHaveBeenCalledWith('plainpassword123', 10);
+    });
+
+    it('should throw ConflictException when email already exists', async () => {
+      const createUserDto = {
+        email: 'jake@jake.jake',
+        username: 'Jake2',
+        password: 'password123',
+      };
+
+      usersRepository.findOne.mockResolvedValue(mockUser);
+
+      await expect(service.create(createUserDto)).rejects.toThrow(ConflictException);
+    });
+
+    it('should throw BadRequestException when email is missing', async () => {
+      const createUserDto = {
+        email: '',
+        username: 'User',
+        password: 'password123',
+      };
+
+      await expect(service.create(createUserDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when username is missing', async () => {
+      const createUserDto = {
+        email: 'user@example.com',
+        username: '',
+        password: 'password123',
+      };
+
+      await expect(service.create(createUserDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException when password is missing', async () => {
+      const createUserDto = {
+        email: 'user@example.com',
+        username: 'User',
+        password: '',
+      };
+
+      await expect(service.create(createUserDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should save the user with hashed password', async () => {
+      const createUserDto = {
+        email: 'savetest@example.com',
+        username: 'SaveTest',
+        password: 'password123',
+      };
+
+      const newUser: User = {
+        id: 4,
+        email: 'savetest@example.com',
+        username: 'SaveTest',
+        passwordHash: 'hashed_password',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      usersRepository.findOne.mockResolvedValue(null);
+      usersRepository.create.mockReturnValue(newUser);
+      usersRepository.save.mockResolvedValue(newUser);
+
+      await service.create(createUserDto);
+
+      expect(usersRepository.create).toHaveBeenCalledWith({
+        email: 'savetest@example.com',
+        username: 'SaveTest',
+        passwordHash: 'hashed_password',
+      });
+      expect(usersRepository.save).toHaveBeenCalledWith(newUser);
+    });
+
+    it('should generate JWT token for new user', async () => {
+      const createUserDto = {
+        email: 'jwttest@example.com',
+        username: 'JwtTest',
+        password: 'password123',
+      };
+
+      const newUser: User = {
+        id: 5,
+        email: 'jwttest@example.com',
+        username: 'JwtTest',
+        passwordHash: 'hashed_password',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      usersRepository.findOne.mockResolvedValue(null);
+      usersRepository.create.mockReturnValue(newUser);
+      usersRepository.save.mockResolvedValue(newUser);
+
+      await service.create(createUserDto);
+
+      expect(jwtService.sign).toHaveBeenCalledWith({
+        sub: 5,
+        email: 'jwttest@example.com',
+      });
+    });
+  });
 });

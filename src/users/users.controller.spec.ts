@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
 import i18next from 'i18next';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { LoginRequestDto } from './dto/login.dto';
+import { CreateUserRequestDto } from './dto/user.dto';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -20,6 +21,7 @@ describe('UsersController', () => {
         {
           provide: UsersService,
           useValue: {
+            create: jest.fn(),
             login: jest.fn(),
           },
         },
@@ -111,5 +113,98 @@ describe('UsersController', () => {
 
       await expect(controller.login(loginRequest)).rejects.toThrow(BadRequestException);
     });
+
+  describe('create', () => {
+    it('should call service.create with correct data', async () => {
+      const createRequest: CreateUserRequestDto = {
+        user: {
+          email: 'newuser@example.com',
+          username: 'NewUser',
+          password: 'password123',
+        },
+      };
+
+      const mockResponse = {
+        user: {
+          id: 2,
+          email: 'newuser@example.com',
+          username: 'NewUser',
+          token: 'test-token',
+        },
+      };
+
+      (service.create as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await controller.create(createRequest);
+
+      expect(service.create).toHaveBeenCalledWith({
+        email: 'newuser@example.com',
+        username: 'NewUser',
+        password: 'password123',
+      });
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should return user data with token after creation', async () => {
+      const createRequest: CreateUserRequestDto = {
+        user: {
+          email: 'jacob@example.com',
+          username: 'Jacob',
+          password: 'jakejake',
+        },
+      };
+
+      const mockResponse = {
+        user: {
+          id: 2,
+          email: 'jacob@example.com',
+          username: 'Jacob',
+          token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+        },
+      };
+
+      (service.create as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await controller.create(createRequest);
+
+      expect(result.user).toBeDefined();
+      expect(result.user.id).toBe(2);
+      expect(result.user.email).toBe('jacob@example.com');
+      expect(result.user.username).toBe('Jacob');
+      expect(result.user.token).toBeDefined();
+    });
+
+    it('should propagate ConflictException when email already exists', async () => {
+      const createRequest: CreateUserRequestDto = {
+        user: {
+          email: 'jake@jake.jake',
+          username: 'Jake2',
+          password: 'password123',
+        },
+      };
+
+      (service.create as jest.Mock).mockRejectedValue(
+        new ConflictException('Email already exists'),
+      );
+
+      await expect(controller.create(createRequest)).rejects.toThrow(ConflictException);
+    });
+
+    it('should propagate BadRequestException when missing required fields', async () => {
+      const createRequest: CreateUserRequestDto = {
+        user: {
+          email: 'newuser@example.com',
+          username: '',
+          password: 'password123',
+        },
+      };
+
+      (service.create as jest.Mock).mockRejectedValue(
+        new BadRequestException('Email, username and password are required'),
+      );
+
+      await expect(controller.create(createRequest)).rejects.toThrow(BadRequestException);
+    });
+  });
   });
 });

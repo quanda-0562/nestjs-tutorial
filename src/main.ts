@@ -1,6 +1,5 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { UsersService } from './users/users.service';
 import { initI18n, getI18n } from './i18n/i18n.config';
 import { setupSwagger } from './swagger/swagger.config';
 import { CustomValidationPipe } from './common/pipes/validation.pipe';
@@ -17,10 +16,6 @@ async function bootstrap() {
 
   // Setup Swagger
   setupSwagger(app);
-
-  // Initialize test user
-  const usersService = app.get(UsersService);
-  await usersService.initializeTestUser();
 
   await app.listen(process.env.PORT ?? 3000);
 }
