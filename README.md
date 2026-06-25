@@ -23,15 +23,53 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+NestJS Tutorial Project - A complete authentication system with JWT, TypeORM migrations, PostgreSQL database, internationalization (i18n), and comprehensive testing.
 
-## Project setup
+### Features
+
+- **Authentication**: JWT-based login with bcrypt password hashing
+- **Database**: PostgreSQL with TypeORM migrations (no auto-sync)
+- **Internationalization**: Multi-language error messages (English, Vietnamese)
+- **Testing**: Unit tests and E2E tests with 100% coverage for auth
+- **API Documentation**: Swagger/OpenAPI support
+- **Production Ready**: Safe schema evolution with migrations
+
+## Requirements
+
+- Node.js 18+
+- PostgreSQL 15+
+- npm 9+
+
+## Project Setup
 
 ```bash
 $ npm install
 ```
 
-## Compile and run the project
+### Create Databases
+
+```bash
+createdb -h localhost nestjs_tutorial
+createdb -h localhost nestjs_tutorial_test
+```
+
+## Environment Configuration
+
+Create `.env` file (or use `.env.example` as template):
+
+```
+NODE_ENV=development
+PORT=3000
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_USER=your_user
+DATABASE_PASSWORD=
+DATABASE_NAME=nestjs_tutorial
+JWT_SECRET=your-secret-key
+JWT_EXPIRATION=24h
+```
+
+## Compile and Run
 
 ```bash
 # development
@@ -41,10 +79,30 @@ $ npm run start
 $ npm run start:dev
 
 # production mode
+$ npm run build
 $ npm run start:prod
 ```
 
-## Run tests
+## Database Migrations
+
+```bash
+# Run pending migrations (auto-runs on app startup)
+$ npm run migration:run
+
+# Show migration status
+$ npm run migration:show
+
+# Revert last migration
+$ npm run migration:revert
+
+# Generate migration from entity changes
+$ npm run build
+$ npm run migration:generate -- -n MigrationName
+```
+
+See [docs/MIGRATIONS.md](docs/MIGRATIONS.md) for complete migration guide.
+
+## Run Tests
 
 ```bash
 # unit tests
@@ -57,42 +115,82 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Deployment
+## API Endpoints
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+### Authentication
+- `POST /api/users/login` - Login with email and password
+  ```json
+  {
+    "user": {
+      "email": "user@example.com",
+      "password": "password123"
+    }
+  }
+  ```
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Documentation
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+- [MIGRATIONS.md](docs/MIGRATIONS.md) - Complete migration guide
+
+## Project Structure
+
+```
+src/
+├── database/
+│   ├── data-source.ts        # TypeORM CLI configuration
+│   └── database.config.ts    # Database configuration factory
+├── migrations/
+│   └── 1704000000000-CreateUserTable.ts
+├── users/
+│   ├── entities/
+│   │   └── user.entity.ts
+│   ├── dto/
+│   │   ├── login.dto.ts
+│   │   └── user.dto.ts
+│   ├── users.service.ts
+│   ├── users.controller.ts
+│   └── users.module.ts
+├── common/
+│   ├── pipes/
+│   │   └── validation.pipe.ts
+│   └── utils/
+│       └── i18n.utils.ts
+├── i18n/
+│   ├── i18n.config.ts
+│   ├── i18n.decorator.ts
+│   └── locales/
+│       ├── en.json
+│       └── vi.json
+├── swagger/
+│   └── swagger.config.ts
+├── app.controller.ts
+├── app.module.ts
+└── main.ts
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Deployment
+
+When deploying to production:
+
+1. Set appropriate environment variables
+2. Ensure PostgreSQL is running and accessible
+3. Run migrations automatically (enabled by default)
+4. Build and deploy
+
+```bash
+npm run build
+NODE_ENV=production npm run start:prod
+```
+
+Migrations will run automatically on app startup.
 
 ## Resources
 
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- [NestJS Documentation](https://docs.nestjs.com)
+- [TypeORM Documentation](https://typeorm.io)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs)
+- [JWT Guide](https://tools.ietf.org/html/rfc7519)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+MIT

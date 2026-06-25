@@ -1,8 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { I18n } from './i18n/i18n.decorator';
-import i18next from 'i18next';
+import { t } from './common/utils/i18n.utils';
 
 @Controller()
 @ApiTags('app')
@@ -30,11 +29,10 @@ export class AppController {
   })
   getHello(
     @Query('name') name: string = 'Developer',
-    @I18n() i18n: typeof i18next,
   ): object {
     return {
-      message: i18n.t('welcome'),
-      greeting: i18n.t('hello', { name }),
+      message: t('welcome'),
+      greeting: t('hello', { name }),
     };
   }
 }
