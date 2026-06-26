@@ -10,6 +10,7 @@
   "auth": {
     "login": "User login",
     "loginSuccess": "Login successful",
+    "loginFailed": "Login failed",
     "invalidEmailOrPassword": "Invalid email or password",
     "emailRequired": "Email is required",
     "passwordRequired": "Password is required",
@@ -19,6 +20,9 @@
     "invalidCredentials": "Invalid credentials",
     "userNotFound": "User not found",
     "unauthorized": "Unauthorized",
-    "emailAlreadyExists": "Email already exists"
+    "emailAlreadyExists": "Email already exists",
+    "registrationFailed": "Registration failed",
+    "fetchUserFailed": "Failed to fetch user",
+    "updateUserFailed": "Failed to update user"
   }
 }
