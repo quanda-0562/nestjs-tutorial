@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsString, MinLength, ValidateNested, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, ValidateNested, IsOptional, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class UserDto {
@@ -64,6 +64,7 @@ export class CreateUserDto {
     description: 'User display name',
   })
   @IsString()
+  @Matches(/^\S+$/, { message: 'auth.usernameWithoutSpaces' })
   username!: string;
 
   @ApiProperty({
@@ -102,6 +103,7 @@ export class UpdateUserDto {
   })
   @IsOptional()
   @IsString()
+  @Matches(/^\S+$/, { message: 'auth.usernameWithoutSpaces' })
   username?: string;
 
   @ApiProperty({
