@@ -14,6 +14,12 @@ export class User {
   @Column()
   passwordHash!: string;
 
+  @Column({ nullable: true })
+  bio?: string;
+
+  @Column({ nullable: true })
+  image?: string;
+
   @CreateDateColumn()
   createdAt?: Date;
 

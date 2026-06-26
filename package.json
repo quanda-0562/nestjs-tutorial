@@ -22,7 +22,8 @@
     "migration:create": "typeorm migration:create -n",
     "migration:run": "typeorm migration:run -d dist/database/data-source.js",
     "migration:revert": "typeorm migration:revert -d dist/database/data-source.js",
-    "migration:show": "typeorm migration:show -d dist/database/data-source.js"
+    "migration:show": "typeorm migration:show -d dist/database/data-source.js",
+    "db:clear": "ts-node scripts/clear-db.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

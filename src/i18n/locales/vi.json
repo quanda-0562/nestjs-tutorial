@@ -10,6 +10,7 @@
   "auth": {
     "login": "Đăng nhập người dùng",
     "loginSuccess": "Đăng nhập thành công",
+    "loginFailed": "Đăng nhập thất bại",
     "invalidEmailOrPassword": "Email hoặc mật khẩu không hợp lệ",
     "emailRequired": "Email là bắt buộc",
     "passwordRequired": "Mật khẩu là bắt buộc",
@@ -18,6 +19,10 @@
     "passwordTooShort": "Mật khẩu phải có ít nhất 8 ký tự",
     "invalidCredentials": "Thông tin đăng nhập không hợp lệ",
     "userNotFound": "Người dùng không tồn tại",
-    "unauthorized": "Không được phép"
+    "unauthorized": "Không được phép",
+    "emailAlreadyExists": "Email đã tồn tại",
+    "registrationFailed": "Đăng ký thất bại",
+    "fetchUserFailed": "Lấy thông tin người dùng thất bại",
+    "updateUserFailed": "Cập nhật người dùng thất bại"
   }
 }
