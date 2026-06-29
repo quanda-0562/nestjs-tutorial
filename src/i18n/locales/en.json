@@ -23,6 +23,15 @@
     "emailAlreadyExists": "Email already exists",
     "registrationFailed": "Registration failed",
     "fetchUserFailed": "Failed to fetch user",
-    "updateUserFailed": "Failed to update user"
+    "updateUserFailed": "Failed to update user",
+    "usernameWithoutSpaces": "Username cannot contain spaces or whitespace"
+  },
+  "profile": {
+    "notFound": "Profile not found",
+    "usernameRequired": "Username is required",
+    "fetchFailed": "Failed to fetch profile",
+    "followFailed": "Failed to follow user",
+    "unfollowFailed": "Failed to unfollow user",
+    "cannotFollowSelf": "You cannot follow yourself"
   }
 }

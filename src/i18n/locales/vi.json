@@ -23,6 +23,15 @@
     "emailAlreadyExists": "Email đã tồn tại",
     "registrationFailed": "Đăng ký thất bại",
     "fetchUserFailed": "Lấy thông tin người dùng thất bại",
-    "updateUserFailed": "Cập nhật người dùng thất bại"
+    "updateUserFailed": "Cập nhật người dùng thất bại",
+    "usernameWithoutSpaces": "Tên người dùng không được chứa khoảng trắng"
+  },
+  "profile": {
+    "notFound": "Không tìm thấy hồ sơ",
+    "usernameRequired": "Tên người dùng là bắt buộc",
+    "fetchFailed": "Lấy hồ sơ thất bại",
+    "followFailed": "Theo dõi người dùng thất bại",
+    "unfollowFailed": "Hủy theo dõi người dùng thất bại",
+    "cannotFollowSelf": "Bạn không thể theo dõi chính mình"
   }
 }

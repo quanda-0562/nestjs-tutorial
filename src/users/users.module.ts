@@ -7,6 +7,8 @@ import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { UserController } from './user.controller';
+import { ProfilesService } from './profiles.service';
+import { ProfilesController } from './profiles.controller';
 import { JwtStrategy } from '../common/strategies/jwt.strategy';
 
 @Module({
@@ -18,7 +20,7 @@ import { JwtStrategy } from '../common/strategies/jwt.strategy';
       useFactory: (configService: ConfigService): JwtModuleOptions => {
         const expiresIn = configService.get<string>('JWT_EXPIRATION') || '24h';
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
+          secret: configService.getOrThrow<string>('JWT_SECRET'),
           signOptions: {
             expiresIn: expiresIn as any,
           },
@@ -26,8 +28,8 @@ import { JwtStrategy } from '../common/strategies/jwt.strategy';
       },
     }),
   ],
-  providers: [UsersService, JwtStrategy],
-  controllers: [UsersController, UserController],
+  providers: [UsersService, ProfilesService, JwtStrategy],
+  controllers: [UsersController, UserController, ProfilesController],
   exports: [UsersService],
 })
 export class UsersModule {}
