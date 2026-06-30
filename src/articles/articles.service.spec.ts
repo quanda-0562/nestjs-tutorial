@@ -355,7 +355,7 @@ describe('ArticlesService', () => {
   describe('update', () => {
     it('should update an article successfully', async () => {
       const updateArticleDto: UpdateArticleDto = {
-        title: 'Updated Title',
+        description: 'Updated description',
         body: 'Updated body',
       };
 
@@ -367,14 +367,15 @@ describe('ArticlesService', () => {
 
       const result = await service.update('test-article', updateArticleDto, mockUser);
 
-      expect(result.title).toBe('Updated Title');
+      expect(result.description).toBe('Updated description');
+      expect(result.body).toBe('Updated body');
       expect(mockArticleRepository.save).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if article not found', async () => {
       mockArticleRepository.findOne.mockResolvedValue(null);
 
-      const updateArticleDto: UpdateArticleDto = { title: 'Updated' };
+      const updateArticleDto: UpdateArticleDto = { body: 'Updated' };
 
       await expect(
         service.update('non-existent', updateArticleDto, mockUser),
@@ -385,16 +386,17 @@ describe('ArticlesService', () => {
       const otherUser: User = { ...mockUser, id: 2 };
       mockArticleRepository.findOne.mockResolvedValue(createMockArticle());
 
-      const updateArticleDto: UpdateArticleDto = { title: 'Updated' };
+      const updateArticleDto: UpdateArticleDto = { body: 'Updated' };
 
       await expect(
         service.update('test-article', updateArticleDto, otherUser),
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('should update slug when title is changed', async () => {
+    it('should update article description and body', async () => {
       const updateArticleDto: UpdateArticleDto = {
-        title: 'New Article Title',
+        description: 'New description',
+        body: 'New body content',
       };
 
       const mockArticleForUpdate = createMockArticle();
@@ -402,12 +404,12 @@ describe('ArticlesService', () => {
       mockArticleRepository.save.mockResolvedValue({
         ...mockArticleForUpdate,
         ...updateArticleDto,
-        slug: 'new-article-title',
       });
 
       const result = await service.update('test-article', updateArticleDto, mockUser);
 
-      expect(result.slug).toBe('new-article-title');
+      expect(result.description).toBe('New description');
+      expect(result.body).toBe('New body content');
     });
   });
 

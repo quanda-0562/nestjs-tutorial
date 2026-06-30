@@ -258,10 +258,11 @@ describe('ArticlesController', () => {
   describe('update', () => {
     it('should update an article', async () => {
       const updateArticleDto: UpdateArticleDto = {
-        title: 'Updated Title',
+        body: 'Updated body',
+        description: 'Updated description',
       };
 
-      const updatedArticle = { ...mockArticleDto, title: 'Updated Title' };
+      const updatedArticle = { ...mockArticleDto, body: 'Updated body', description: 'Updated description' };
       mockArticlesService.update.mockResolvedValue(updatedArticle);
 
       const result = await controller.update('test-article', updateArticleDto, {
@@ -269,7 +270,7 @@ describe('ArticlesController', () => {
       });
 
       expect(result).toHaveProperty('article');
-      expect(result.article.title).toBe('Updated Title');
+      expect(result.article.body).toBe('Updated body');
       expect(mockArticlesService.update).toHaveBeenCalledWith(
         'test-article',
         updateArticleDto,
@@ -278,7 +279,7 @@ describe('ArticlesController', () => {
     });
 
     it('should handle article not found on update', async () => {
-      const updateArticleDto: UpdateArticleDto = { title: 'Updated' };
+      const updateArticleDto: UpdateArticleDto = { body: 'Updated' };
       mockArticlesService.update.mockRejectedValue(
         new NotFoundException('Article not found'),
       );
@@ -289,7 +290,7 @@ describe('ArticlesController', () => {
     });
 
     it('should handle forbidden exception when not author', async () => {
-      const updateArticleDto: UpdateArticleDto = { title: 'Updated' };
+      const updateArticleDto: UpdateArticleDto = { body: 'Updated' };
       mockArticlesService.update.mockRejectedValue(
         new ForbiddenException('You can only update your own articles'),
       );
