@@ -33,5 +33,11 @@
     "followFailed": "Theo dõi người dùng thất bại",
     "unfollowFailed": "Hủy theo dõi người dùng thất bại",
     "cannotFollowSelf": "Bạn không thể theo dõi chính mình"
+  },
+  "articles": {
+    "notFound": "Không tìm thấy bài viết có slug \"{{slug}}\"",
+    "cannotUpdate": "Bạn chỉ có thể cập nhật bài viết của chính mình",
+    "cannotDelete": "Bạn chỉ có thể xóa bài viết của chính mình",
+    "userNotFound": "Người dùng không tồn tại"
   }
 }

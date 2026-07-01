@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { User } from '../users/entities/user.entity';
+import { Article } from '../articles/entities/article.entity';
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
@@ -9,7 +10,7 @@ export const AppDataSource = new DataSource({
   username: process.env.DATABASE_USER || 'postgres',
   password: process.env.DATABASE_PASSWORD || '',
   database: process.env.DATABASE_NAME || 'nestjs_tutorial',
-  entities: [User],
-  migrations: ['dist/migrations/*.js'],
+  entities: [User, Article],
+  migrations: ['dist/src/migrations/*.js'],
   migrationsTableName: 'typeorm_migrations',
 });

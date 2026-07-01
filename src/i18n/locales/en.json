@@ -33,5 +33,11 @@
     "followFailed": "Failed to follow user",
     "unfollowFailed": "Failed to unfollow user",
     "cannotFollowSelf": "You cannot follow yourself"
+  },
+  "articles": {
+    "notFound": "Article with slug \"{{slug}}\" not found",
+    "cannotUpdate": "You can only update your own articles",
+    "cannotDelete": "You can only delete your own articles",
+    "userNotFound": "User not found"
   }
 }
