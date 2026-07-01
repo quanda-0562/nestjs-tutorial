@@ -51,6 +51,14 @@ export class UserResponseDto {
   user!: UserDto;
 }
 
+export class LogoutResponseDto {
+  @ApiProperty({
+    example: 'Logout successful. The current token has been invalidated.',
+    description: 'Logout status message',
+  })
+  message!: string;
+}
+
 export class CreateUserDto {
   @ApiProperty({
     example: 'jake@jake.jake',

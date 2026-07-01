@@ -10,6 +10,7 @@
   "auth": {
     "login": "Đăng nhập người dùng",
     "loginSuccess": "Đăng nhập thành công",
+    "logoutSuccess": "Đăng xuất thành công. Token hiện tại đã bị vô hiệu hóa.",
     "loginFailed": "Đăng nhập thất bại",
     "invalidEmailOrPassword": "Email hoặc mật khẩu không hợp lệ",
     "emailRequired": "Email là bắt buộc",

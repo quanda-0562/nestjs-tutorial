@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtStrategy } from '../strategies/jwt.strategy';
 import { User } from '../../users/entities/user.entity';
+import { RevokedTokensService } from '../services/revoked-tokens.service';
 
 /**
  * AuthModule
@@ -34,7 +35,7 @@ import { User } from '../../users/entities/user.entity';
       },
     }),
   ],
-  providers: [JwtStrategy],
-  exports: [JwtModule, PassportModule, JwtStrategy],
+  providers: [JwtStrategy, RevokedTokensService],
+  exports: [JwtModule, PassportModule, JwtStrategy, RevokedTokensService],
 })
 export class AuthModule {}

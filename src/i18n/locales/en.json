@@ -10,6 +10,7 @@
   "auth": {
     "login": "User login",
     "loginSuccess": "Login successful",
+    "logoutSuccess": "Logout successful. The current token has been invalidated.",
     "loginFailed": "Login failed",
     "invalidEmailOrPassword": "Invalid email or password",
     "emailRequired": "Email is required",

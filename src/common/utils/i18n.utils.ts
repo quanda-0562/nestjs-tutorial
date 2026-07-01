@@ -8,5 +8,11 @@ import { getI18n } from '../../i18n/i18n.config';
  */
 export const t = (key: string, options?: Record<string, any>): string => {
   const i18n = getI18n();
-  return i18n.t(key, options);
+  const translated = i18n.t(key, options);
+
+  if (typeof translated === 'string' && translated.length > 0) {
+    return translated;
+  }
+
+  return options?.defaultValue ?? key;
 };

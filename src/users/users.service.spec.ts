@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { UserResponseDto } from './dto/user.dto';
+import { RevokedTokensService } from '../common/services/revoked-tokens.service';
 
 jest.mock('bcrypt');
 
@@ -13,6 +14,7 @@ describe('UsersService', () => {
   let service: UsersService;
   let jwtService: JwtService;
   let usersRepository: any;
+  let revokedTokensService: RevokedTokensService;
 
   const mockUser: User = {
     id: 1,
@@ -21,6 +23,8 @@ describe('UsersService', () => {
     passwordHash: 'hashed_password',
     bio: 'I like to skateboard',
     image: 'https://i.stack.imgur.com/xHWG8.jpg',
+    following: [],
+    followers: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -39,6 +43,14 @@ describe('UsersService', () => {
           provide: JwtService,
           useValue: {
             sign: jest.fn().mockReturnValue('test-token'),
+            decode: jest.fn().mockReturnValue({ exp: 2000000000 }),
+          },
+        },
+        {
+          provide: RevokedTokensService,
+          useValue: {
+            revokeToken: jest.fn(),
+            isTokenRevoked: jest.fn().mockReturnValue(false),
           },
         },
         {
@@ -50,6 +62,7 @@ describe('UsersService', () => {
 
     service = module.get<UsersService>(UsersService);
     jwtService = module.get<JwtService>(JwtService);
+    revokedTokensService = module.get<RevokedTokensService>(RevokedTokensService);
   });
 
   describe('login', () => {
@@ -128,6 +141,8 @@ describe('UsersService', () => {
         passwordHash: 'hashed_password',
         bio: undefined,
         image: undefined,
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -160,6 +175,8 @@ describe('UsersService', () => {
         passwordHash: 'hashed_password',
         bio: undefined,
         image: undefined,
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -230,6 +247,8 @@ describe('UsersService', () => {
         passwordHash: 'hashed_password',
         bio: undefined,
         image: undefined,
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -263,6 +282,8 @@ describe('UsersService', () => {
         passwordHash: 'hashed_password',
         bio: undefined,
         image: undefined,
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -290,6 +311,18 @@ describe('UsersService', () => {
       usersRepository.findOne.mockRejectedValue(new Error('Database error'));
 
       await expect(service.create(createUserDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('logout', () => {
+    it('should revoke the current token and return a success message', async () => {
+      const result = await service.logout(1, 'revoked-token');
+
+      expect(result).toEqual({
+        message: 'Logout successful. The current token has been invalidated.',
+      });
+      expect(jwtService.decode).toHaveBeenCalledWith('revoked-token');
+      expect(revokedTokensService.revokeToken).toHaveBeenCalledWith('revoked-token', 2000000000);
     });
   });
 
@@ -437,4 +470,3 @@ describe('UsersService', () => {
     });
   });
 });
-

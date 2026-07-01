@@ -1,8 +1,10 @@
-import { Controller, Post, Body } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiConflictResponse, ApiCreatedResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, Req, UseGuards, HttpCode, UnauthorizedException } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiConflictResponse, ApiCreatedResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { LoginRequestDto } from './dto/login.dto';
-import { UserResponseDto, CreateUserRequestDto } from './dto/user.dto';
+import { UserResponseDto, CreateUserRequestDto, LogoutResponseDto } from './dto/user.dto';
+import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import type { AuthenticatedRequest } from '../common/types/request.types';
 
 @Controller('api/users')
 @ApiTags('users')
@@ -47,6 +49,44 @@ export class UsersController {
     @Body() loginRequest: LoginRequestDto,
   ): Promise<UserResponseDto> {
     return this.usersService.login(loginRequest.user.email, loginRequest.user.password);
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'User logout',
+    description: 'Validate the current JWT and revoke it so the same token cannot be used again.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully logged out',
+    type: LogoutResponseDto,
+    example: {
+      message: 'Logout successful. The current token has been invalidated.',
+    },
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Unauthorized - missing or invalid token',
+    example: {
+      statusCode: 401,
+      message: 'Unauthorized',
+      error: 'Unauthorized',
+    },
+  })
+  async logout(@Req() req: AuthenticatedRequest): Promise<LogoutResponseDto> {
+    const authorizationHeader = req.headers.authorization;
+    const token = authorizationHeader?.startsWith('Bearer ')
+      ? authorizationHeader.slice('Bearer '.length)
+      : undefined;
+    if (!token) {
+      throw new UnauthorizedException('Unauthorized');
+    }
+
+    // Keep compatibility with both the real JWT strategy (`id`) and existing mocks (`userId`).
+    const authenticatedUserId = req.user?.userId ?? req.user?.id;
+    return this.usersService.logout(authenticatedUserId as number, token);
   }
 
   @Post()

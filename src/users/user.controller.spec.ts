@@ -3,6 +3,13 @@ import { NotFoundException, ConflictException } from '@nestjs/common';
 import { UserController } from './user.controller';
 import { UsersService } from './users.service';
 import { UpdateUserRequestDto, UserResponseDto } from './dto/user.dto';
+import type { AuthenticatedRequest } from '../common/types/request.types';
+
+function createAuthenticatedRequest(
+  user: AuthenticatedRequest['user'],
+): AuthenticatedRequest {
+  return { user } as AuthenticatedRequest;
+}
 
 describe('UserController', () => {
   let controller: UserController;
@@ -40,7 +47,20 @@ describe('UserController', () => {
 
   describe('getCurrentUser', () => {
     it('should call service.getCurrentUser with correct userId', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
+      const mockResponse: UserResponseDto = {
+        user: mockUser,
+      };
+
+      (service.getCurrentUser as jest.Mock).mockResolvedValue(mockResponse);
+
+      await controller.getCurrentUser(req);
+
+      expect(service.getCurrentUser).toHaveBeenCalledWith(1);
+    });
+
+    it('should fallback to req.user.id for authenticated requests from the real JWT strategy', async () => {
+      const req = createAuthenticatedRequest({ id: 1, userId: 1 });
       const mockResponse: UserResponseDto = {
         user: mockUser,
       };
@@ -53,7 +73,7 @@ describe('UserController', () => {
     });
 
     it('should return user data successfully', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const mockResponse: UserResponseDto = {
         user: mockUser,
       };
@@ -69,7 +89,7 @@ describe('UserController', () => {
     });
 
     it('should include bio and image in response', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const mockResponse: UserResponseDto = {
         user: mockUser,
       };
@@ -83,7 +103,7 @@ describe('UserController', () => {
     });
 
     it('should propagate NotFoundException when user not found', async () => {
-      const req = { user: { userId: 999 } };
+      const req = createAuthenticatedRequest({ userId: 999 });
 
       (service.getCurrentUser as jest.Mock).mockRejectedValue(
         new NotFoundException('User not found'),
@@ -95,7 +115,7 @@ describe('UserController', () => {
 
   describe('update', () => {
     it('should call service.update with correct userId and data', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           email: 'newemail@example.com',
@@ -120,8 +140,29 @@ describe('UserController', () => {
       });
     });
 
+    it('should fallback to req.user.id when userId is not present', async () => {
+      const req = createAuthenticatedRequest({ id: 1, userId: 1 });
+      const updateRequest: UpdateUserRequestDto = {
+        user: {
+          bio: 'New bio',
+        },
+      };
+      const mockResponse: UserResponseDto = {
+        user: {
+          ...mockUser,
+          bio: 'New bio',
+        },
+      };
+
+      (service.update as jest.Mock).mockResolvedValue(mockResponse);
+
+      await controller.update(req, updateRequest);
+
+      expect(service.update).toHaveBeenCalledWith(1, { bio: 'New bio' });
+    });
+
     it('should return updated user data', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           bio: 'New bio',
@@ -143,7 +184,7 @@ describe('UserController', () => {
     });
 
     it('should handle updating only email', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           email: 'updated@example.com',
@@ -165,7 +206,7 @@ describe('UserController', () => {
     });
 
     it('should handle updating only username', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           username: 'New Username',
@@ -186,7 +227,7 @@ describe('UserController', () => {
     });
 
     it('should handle updating bio and image', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           bio: 'Updated bio',
@@ -210,7 +251,7 @@ describe('UserController', () => {
     });
 
     it('should propagate ConflictException when email already exists', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           email: 'existing@example.com',
@@ -225,7 +266,7 @@ describe('UserController', () => {
     });
 
     it('should propagate NotFoundException when user not found', async () => {
-      const req = { user: { userId: 999 } };
+      const req = createAuthenticatedRequest({ userId: 999 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           username: 'Updated',
@@ -240,7 +281,7 @@ describe('UserController', () => {
     });
 
     it('should handle updating password', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           password: 'newpassword123',
@@ -260,7 +301,7 @@ describe('UserController', () => {
     });
 
     it('should handle updating multiple fields at once', async () => {
-      const req = { user: { userId: 1 } };
+      const req = createAuthenticatedRequest({ userId: 1 });
       const updateRequest: UpdateUserRequestDto = {
         user: {
           email: 'newemail@example.com',

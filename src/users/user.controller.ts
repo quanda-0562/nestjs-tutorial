@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiUnauthorizedResponse, ApiBearerA
 import { UsersService } from './users.service';
 import { UserResponseDto, UpdateUserRequestDto } from './dto/user.dto';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import type { AuthenticatedRequest } from '../common/types/request.types';
 
 @Controller('api/user')
 @ApiTags('user')
@@ -44,8 +45,8 @@ export class UserController {
       error: 'Not Found',
     },
   })
-  async getCurrentUser(@Req() req: any): Promise<UserResponseDto> {
-    return this.usersService.getCurrentUser(req.user.userId);
+  async getCurrentUser(@Req() req: AuthenticatedRequest): Promise<UserResponseDto> {
+    return this.usersService.getCurrentUser((req.user?.userId ?? req.user?.id) as number);
   }
 
   @Put()
@@ -101,7 +102,7 @@ export class UserController {
       error: 'Not Found',
     },
   })
-  async update(@Req() req: any, @Body() updateUserRequest: UpdateUserRequestDto): Promise<UserResponseDto> {
-    return this.usersService.update(req.user.userId, updateUserRequest.user);
+  async update(@Req() req: AuthenticatedRequest, @Body() updateUserRequest: UpdateUserRequestDto): Promise<UserResponseDto> {
+    return this.usersService.update((req.user?.userId ?? req.user?.id) as number, updateUserRequest.user);
   }
 }
