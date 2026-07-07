@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, UnauthorizedException, ConflictException } from '@nestjs/common';
-import i18next from 'i18next';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { LoginRequestDto } from './dto/login.dto';
@@ -9,10 +8,6 @@ import { CreateUserRequestDto } from './dto/user.dto';
 describe('UsersController', () => {
   let controller: UsersController;
   let service: UsersService;
-
-  const mockI18n = {
-    t: jest.fn((key: string) => key),
-  } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -23,6 +18,7 @@ describe('UsersController', () => {
           useValue: {
             create: jest.fn(),
             login: jest.fn(),
+            logout: jest.fn(),
           },
         },
       ],
@@ -113,6 +109,50 @@ describe('UsersController', () => {
 
       await expect(controller.login(loginRequest)).rejects.toThrow(BadRequestException);
     });
+  });
+
+  describe('logout', () => {
+    it('should call service.logout with userId from request', async () => {
+      const req = { user: { userId: 1 }, headers: { authorization: 'Bearer revoked-token' } };
+      const mockResponse = {
+        message: 'Logout successful. The current token has been invalidated.',
+      };
+
+      (service.logout as jest.Mock).mockResolvedValue(mockResponse);
+
+      const result = await controller.logout(req as any);
+
+      expect(service.logout).toHaveBeenCalledWith(1, 'revoked-token');
+      expect(result).toEqual(mockResponse);
+    });
+
+    it('should fallback to req.user.id when userId is not present', async () => {
+      const req = { user: { id: 2 }, headers: { authorization: 'Bearer fallback-token' } };
+      const mockResponse = {
+        message: 'Logout successful. The current token has been invalidated.',
+      };
+
+      (service.logout as jest.Mock).mockResolvedValue(mockResponse);
+
+      await controller.logout(req as any);
+
+      expect(service.logout).toHaveBeenCalledWith(2, 'fallback-token');
+    });
+
+    it('should propagate UnauthorizedException from service', async () => {
+      const req = { user: { userId: 1 }, headers: { authorization: 'Bearer revoked-token' } };
+
+      (service.logout as jest.Mock).mockRejectedValue(new UnauthorizedException('Unauthorized'));
+
+      await expect(controller.logout(req as any)).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('should throw UnauthorizedException when the bearer token is missing', async () => {
+      const req = { user: { userId: 1 }, headers: {} };
+
+      await expect(controller.logout(req as any)).rejects.toThrow(UnauthorizedException);
+    });
+  });
 
   describe('create', () => {
     it('should call service.create with correct data', async () => {
@@ -205,6 +245,5 @@ describe('UsersController', () => {
 
       await expect(controller.create(createRequest)).rejects.toThrow(BadRequestException);
     });
-  });
   });
 });

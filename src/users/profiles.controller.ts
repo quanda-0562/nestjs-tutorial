@@ -45,7 +45,7 @@ export class ProfilesController {
     @Param('username') username: string,
     @Request() req: OptionalAuthenticatedRequest,
   ): Promise<ProfileResponseDto> {
-    const currentUserId = req.user?.userId;
+    const currentUserId = req.user?.userId ?? req.user?.id;
     return this.profilesService.getProfile(username, currentUserId);
   }
 
@@ -84,7 +84,7 @@ export class ProfilesController {
     @Param('username') username: string,
     @Request() req: AuthenticatedRequest,
   ): Promise<ProfileResponseDto> {
-    return this.profilesService.followUser(username, req.user!.userId);
+    return this.profilesService.followUser(username, (req.user!.userId ?? req.user!.id) as number);
   }
 
   /**
@@ -117,6 +117,6 @@ export class ProfilesController {
     @Param('username') username: string,
     @Request() req: AuthenticatedRequest,
   ): Promise<ProfileResponseDto> {
-    return this.profilesService.unfollowUser(username, req.user!.userId);
+    return this.profilesService.unfollowUser(username, (req.user!.userId ?? req.user!.id) as number);
   }
 }

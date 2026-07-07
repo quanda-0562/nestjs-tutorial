@@ -5,7 +5,8 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { t } from '../common/utils/i18n.utils';
 import { User } from './entities/user.entity';
-import { UserDto, CreateUserDto, UserResponseDto, UpdateUserDto } from './dto/user.dto';
+import { UserDto, CreateUserDto, UserResponseDto, UpdateUserDto, LogoutResponseDto } from './dto/user.dto';
+import { RevokedTokensService } from '../common/services/revoked-tokens.service';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,7 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private jwtService: JwtService,
+    private revokedTokensService: RevokedTokensService,
   ) {}
 
   private buildUserResponse(user: User, token?: string): UserResponseDto {
@@ -125,6 +127,20 @@ export class UsersService {
       this.logger.error(`Registration error: ${error}`);
       throw new BadRequestException(t('auth.registrationFailed'));
     }
+  }
+
+  async logout(userId: number, token: string): Promise<LogoutResponseDto> {
+    // JWTs are stateless by default, so we keep revoked tokens in Redis
+    // until their natural expiration time.
+    const decodedToken = this.jwtService.decode(token) as { exp?: number } | null;
+    await this.revokedTokensService.revokeToken(token, decodedToken?.exp);
+    this.logger.log(`User logged out: ${userId}`);
+
+    return {
+      message: t('auth.logoutSuccess', {
+        defaultValue: 'Logout successful. The current token has been invalidated.',
+      }),
+    };
   }
 
   async getCurrentUser(userId: number): Promise<UserResponseDto> {

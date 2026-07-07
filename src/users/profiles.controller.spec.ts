@@ -4,11 +4,24 @@ import { ProfilesController } from './profiles.controller';
 import { ProfilesService } from './profiles.service';
 import { ProfileResponseDto } from './dto/profile.dto';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import type { AuthenticatedRequest, OptionalAuthenticatedRequest } from '../common/types/request.types';
 
 // Mock JWT Guard
 const mockJwtGuard: CanActivate = {
   canActivate: jest.fn(() => true),
 };
+
+function createOptionalAuthenticatedRequest(
+  user?: OptionalAuthenticatedRequest['user'],
+): OptionalAuthenticatedRequest {
+  return { user } as OptionalAuthenticatedRequest;
+}
+
+function createAuthenticatedRequest(
+  user: AuthenticatedRequest['user'],
+): AuthenticatedRequest {
+  return { user } as AuthenticatedRequest;
+}
 
 describe('ProfilesController', () => {
   let controller: ProfilesController;
@@ -56,7 +69,7 @@ describe('ProfilesController', () => {
     it('should return a profile', async () => {
       mockProfilesService.getProfile.mockResolvedValue(mockProfileResponse);
 
-      const result = await controller.getProfile('jake', {});
+      const result = await controller.getProfile('jake', createOptionalAuthenticatedRequest());
 
       expect(result).toEqual(mockProfileResponse);
       expect(service.getProfile).toHaveBeenCalledWith('jake', undefined);
@@ -65,16 +78,24 @@ describe('ProfilesController', () => {
     it('should pass currentUserId when user is authenticated', async () => {
       mockProfilesService.getProfile.mockResolvedValue(mockProfileResponse);
 
-      const result = await controller.getProfile('jake', { user: { userId: 1 } });
+      const result = await controller.getProfile('jake', createOptionalAuthenticatedRequest({ userId: 1 }));
 
       expect(result).toEqual(mockProfileResponse);
+      expect(service.getProfile).toHaveBeenCalledWith('jake', 1);
+    });
+
+    it('should fallback to req.user.id when provided by the JWT strategy', async () => {
+      mockProfilesService.getProfile.mockResolvedValue(mockProfileResponse);
+
+      await controller.getProfile('jake', createOptionalAuthenticatedRequest({ id: 1, userId: 1 }));
+
       expect(service.getProfile).toHaveBeenCalledWith('jake', 1);
     });
 
     it('should call service with username parameter', async () => {
       mockProfilesService.getProfile.mockResolvedValue(mockProfileResponse);
 
-      await controller.getProfile('jake', {});
+      await controller.getProfile('jake', createOptionalAuthenticatedRequest());
 
       expect(service.getProfile).toHaveBeenCalledWith('jake', undefined);
     });
@@ -91,7 +112,7 @@ describe('ProfilesController', () => {
 
       mockProfilesService.followUser.mockResolvedValue(followingProfile);
 
-      const result = await controller.followUser('jake', { user: { userId: 1 } });
+      const result = await controller.followUser('jake', createAuthenticatedRequest({ userId: 1 }));
 
       expect(result.profile.following).toBe(true);
       expect(service.followUser).toHaveBeenCalledWith('jake', 1);
@@ -100,7 +121,15 @@ describe('ProfilesController', () => {
     it('should pass correct parameters to service', async () => {
       mockProfilesService.followUser.mockResolvedValue(mockProfileResponse);
 
-      await controller.followUser('otheruser', { user: { userId: 2 } });
+      await controller.followUser('otheruser', createAuthenticatedRequest({ userId: 2 }));
+
+      expect(service.followUser).toHaveBeenCalledWith('otheruser', 2);
+    });
+
+    it('should fallback to req.user.id for authenticated follow requests', async () => {
+      mockProfilesService.followUser.mockResolvedValue(mockProfileResponse);
+
+      await controller.followUser('otheruser', createAuthenticatedRequest({ id: 2, userId: 2 }));
 
       expect(service.followUser).toHaveBeenCalledWith('otheruser', 2);
     });
@@ -110,7 +139,7 @@ describe('ProfilesController', () => {
     it('should unfollow a user and return profile with following false', async () => {
       mockProfilesService.unfollowUser.mockResolvedValue(mockProfileResponse);
 
-      const result = await controller.unfollowUser('jake', { user: { userId: 1 } });
+      const result = await controller.unfollowUser('jake', createAuthenticatedRequest({ userId: 1 }));
 
       expect(result.profile.following).toBe(false);
       expect(service.unfollowUser).toHaveBeenCalledWith('jake', 1);
@@ -119,7 +148,15 @@ describe('ProfilesController', () => {
     it('should pass correct parameters to service', async () => {
       mockProfilesService.unfollowUser.mockResolvedValue(mockProfileResponse);
 
-      await controller.unfollowUser('otheruser', { user: { userId: 2 } });
+      await controller.unfollowUser('otheruser', createAuthenticatedRequest({ userId: 2 }));
+
+      expect(service.unfollowUser).toHaveBeenCalledWith('otheruser', 2);
+    });
+
+    it('should fallback to req.user.id for authenticated unfollow requests', async () => {
+      mockProfilesService.unfollowUser.mockResolvedValue(mockProfileResponse);
+
+      await controller.unfollowUser('otheruser', createAuthenticatedRequest({ id: 2, userId: 2 }));
 
       expect(service.unfollowUser).toHaveBeenCalledWith('otheruser', 2);
     });

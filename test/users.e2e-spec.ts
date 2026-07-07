@@ -1,25 +1,47 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication, ValidationPipe, UnauthorizedException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import request from 'supertest';
 import { JwtModule } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersController } from '../src/users/users.controller';
+import { UserController } from '../src/users/user.controller';
 import { UsersService } from '../src/users/users.service';
 import { User } from '../src/users/entities/user.entity';
+import { JwtAuthGuard } from '../src/common/guards/jwt.guard';
+import { RevokedTokensService } from '../src/common/services/revoked-tokens.service';
 
 jest.mock('bcrypt');
 
 describe('Users E2E Tests', () => {
   let app: INestApplication;
-  let usersService: UsersService;
   let usersRepository: any;
+  let revokedTokensService: RevokedTokensService;
+
+  const mockJwtAuthGuard = {
+    canActivate: jest.fn((context) => {
+      const request = context.switchToHttp().getRequest();
+      const authorization = request.headers.authorization;
+      const token = authorization?.startsWith('Bearer ')
+        ? authorization.slice('Bearer '.length)
+        : undefined;
+
+      if (token?.startsWith('valid-test-token') && !revokedTokensService?.isTokenRevoked(token)) {
+        request.user = { userId: 1, id: 1, email: 'jake@jake.jake' };
+        return true;
+      }
+
+      throw new UnauthorizedException();
+    }),
+  };
 
   const mockUser: User = {
     id: 1,
     email: 'jake@jake.jake',
     username: 'Jake',
     passwordHash: 'hashed_password',
+    following: [],
+    followers: [],
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -31,28 +53,31 @@ describe('Users E2E Tests', () => {
       save: jest.fn(),
     };
 
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixtureBuilder = Test.createTestingModule({
       imports: [
         JwtModule.register({
           secret: 'test-secret-key',
           signOptions: { expiresIn: '24h' },
         }),
       ],
-      controllers: [UsersController],
+      controllers: [UsersController, UserController],
       providers: [
         UsersService,
+        RevokedTokensService,
         {
           provide: getRepositoryToken(User),
           useValue: usersRepository,
         },
       ],
-    }).compile();
+    }).overrideGuard(JwtAuthGuard).useValue(mockJwtAuthGuard);
+
+    const moduleFixture: TestingModule = await moduleFixtureBuilder.compile();
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ transform: true }));
 
     await app.init();
-    usersService = moduleFixture.get<UsersService>(UsersService);
+    revokedTokensService = moduleFixture.get<RevokedTokensService>(RevokedTokensService);
   });
 
   afterAll(async () => {
@@ -211,6 +236,49 @@ describe('Users E2E Tests', () => {
     });
   });
 
+  describe('POST /api/users/logout', () => {
+    it('should return 200 when the request is authenticated', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/logout')
+        .set('Authorization', 'Bearer valid-test-token');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        message: 'Logout successful. The current token has been invalidated.',
+      });
+    });
+
+    it('should return 401 when the request has no token', async () => {
+      const response = await request(app.getHttpServer())
+        .post('/api/users/logout');
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should reject the same token after logout', async () => {
+      const reusableToken = 'valid-test-token-reuse';
+      usersRepository.findOne.mockResolvedValue(mockUser);
+
+      const beforeLogout = await request(app.getHttpServer())
+        .get('/api/user')
+        .set('Authorization', `Bearer ${reusableToken}`);
+
+      expect(beforeLogout.status).toBe(200);
+
+      const logoutResponse = await request(app.getHttpServer())
+        .post('/api/users/logout')
+        .set('Authorization', `Bearer ${reusableToken}`);
+
+      expect(logoutResponse.status).toBe(200);
+
+      const afterLogout = await request(app.getHttpServer())
+        .get('/api/user')
+        .set('Authorization', `Bearer ${reusableToken}`);
+
+      expect(afterLogout.status).toBe(401);
+    });
+  });
+
   describe('POST /api/users', () => {
     it('should successfully create a new user', async () => {
       const newUser: User = {
@@ -218,6 +286,8 @@ describe('Users E2E Tests', () => {
         email: 'jacob@example.com',
         username: 'Jacob',
         passwordHash: 'hashed_password',
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -341,6 +411,8 @@ describe('Users E2E Tests', () => {
         email: 'newuser@example.com',
         username: 'NewUser',
         passwordHash: 'hashed_password',
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -369,6 +441,8 @@ describe('Users E2E Tests', () => {
         email: 'jwtuser@example.com',
         username: 'JwtUser',
         passwordHash: 'hashed_password',
+        following: [],
+        followers: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -394,4 +468,3 @@ describe('Users E2E Tests', () => {
     });
   });
 });
-
