@@ -130,10 +130,10 @@ export class UsersService {
   }
 
   async logout(userId: number, token: string): Promise<LogoutResponseDto> {
-    // JWTs are stateless by default, so we maintain an in-memory revocation list
-    // to ensure a logged-out token is rejected before its normal expiration time.
+    // JWTs are stateless by default, so we keep revoked tokens in Redis
+    // until their natural expiration time.
     const decodedToken = this.jwtService.decode(token) as { exp?: number } | null;
-    this.revokedTokensService.revokeToken(token, decodedToken?.exp);
+    await this.revokedTokensService.revokeToken(token, decodedToken?.exp);
     this.logger.log(`User logged out: ${userId}`);
 
     return {

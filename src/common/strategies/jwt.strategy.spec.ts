@@ -31,7 +31,7 @@ describe('JwtStrategy', () => {
     };
 
     revokedTokensService = {
-      isTokenRevoked: jest.fn().mockReturnValue(false),
+      isTokenRevoked: jest.fn().mockResolvedValue(false),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -58,7 +58,7 @@ describe('JwtStrategy', () => {
   });
 
   it('should reject a revoked token', async () => {
-    revokedTokensService.isTokenRevoked.mockReturnValue(true);
+    revokedTokensService.isTokenRevoked.mockResolvedValue(true);
     const req = {
       headers: {
         authorization: 'Bearer revoked-token',

@@ -49,8 +49,8 @@ describe('UsersService', () => {
         {
           provide: RevokedTokensService,
           useValue: {
-            revokeToken: jest.fn(),
-            isTokenRevoked: jest.fn().mockReturnValue(false),
+            revokeToken: jest.fn().mockResolvedValue(undefined),
+            isTokenRevoked: jest.fn().mockResolvedValue(false),
           },
         },
         {

@@ -67,6 +67,7 @@ DATABASE_PASSWORD=
 DATABASE_NAME=nestjs_tutorial
 JWT_SECRET=your-secret-key
 JWT_EXPIRATION=24h
+REDIS_URL=redis://localhost:6379
 ```
 
 ## Compile and Run
