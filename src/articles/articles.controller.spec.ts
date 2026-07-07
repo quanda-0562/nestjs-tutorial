@@ -5,6 +5,7 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { User } from '../users/entities/user.entity';
+import { CreateCommentDto } from './dto/comment.dto';
 
 describe('ArticlesController', () => {
   let controller: ArticlesController;
@@ -49,6 +50,21 @@ describe('ArticlesController', () => {
     remove: jest.fn(),
     favorite: jest.fn(),
     unfavorite: jest.fn(),
+    addComment: jest.fn(),
+    getComments: jest.fn(),
+    deleteComment: jest.fn(),
+  };
+
+  const mockCommentDto = {
+    id: 1,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    body: 'His name was my name too.',
+    author: {
+      username: 'testuser',
+      bio: 'Test bio',
+      image: 'https://example.com/image.jpg',
+      following: false,
+    },
   };
 
   beforeEach(async () => {
@@ -408,6 +424,93 @@ describe('ArticlesController', () => {
       await expect(controller.unfavorite('non-existent', { user: mockUser })).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('addComment', () => {
+    it('should add a comment and return SingleCommentResponseDto', async () => {
+      const createCommentDto: CreateCommentDto = {
+        comment: {
+          body: 'His name was my name too.',
+        },
+      };
+
+      mockArticlesService.addComment.mockResolvedValue(mockCommentDto);
+
+      const result = await controller.addComment('test-article', createCommentDto, {
+        user: mockUser,
+      });
+
+      expect(result).toHaveProperty('comment');
+      expect(result.comment.body).toBe('His name was my name too.');
+      expect(mockArticlesService.addComment).toHaveBeenCalledWith(
+        'test-article',
+        'His name was my name too.',
+        mockUser,
+      );
+    });
+
+    it('should handle article not found while adding comment', async () => {
+      mockArticlesService.addComment.mockRejectedValue(
+        new NotFoundException('Article not found'),
+      );
+
+      await expect(
+        controller.addComment(
+          'non-existent',
+          { comment: { body: 'Test comment' } },
+          { user: mockUser },
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getComments', () => {
+    it('should return comments for an article', async () => {
+      mockArticlesService.getComments.mockResolvedValue([mockCommentDto]);
+
+      const result = await controller.getComments('test-article');
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].id).toBe(1);
+      expect(mockArticlesService.getComments).toHaveBeenCalledWith('test-article');
+    });
+
+    it('should handle missing article while fetching comments', async () => {
+      mockArticlesService.getComments.mockRejectedValue(
+        new NotFoundException('Article not found'),
+      );
+
+      await expect(controller.getComments('missing-article')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('deleteComment', () => {
+    it('should delete a comment', async () => {
+      mockArticlesService.deleteComment.mockResolvedValue(undefined);
+
+      const result = await controller.deleteComment('test-article', '1', {
+        user: mockUser,
+      });
+
+      expect(result).toBeUndefined();
+      expect(mockArticlesService.deleteComment).toHaveBeenCalledWith(
+        'test-article',
+        1,
+        mockUser,
+      );
+    });
+
+    it('should handle forbidden delete attempts', async () => {
+      mockArticlesService.deleteComment.mockRejectedValue(
+        new ForbiddenException('You can only delete your own comments'),
+      );
+
+      await expect(
+        controller.deleteComment('test-article', '1', { user: mockUser }),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

@@ -40,5 +40,9 @@
     "cannotUpdate": "Bạn chỉ có thể cập nhật bài viết của chính mình",
     "cannotDelete": "Bạn chỉ có thể xóa bài viết của chính mình",
     "userNotFound": "Người dùng không tồn tại"
+  },
+  "comments": {
+    "notFound": "Không tìm thấy bình luận",
+    "cannotDelete": "Bạn chỉ có thể xóa bình luận của chính mình"
   }
 }

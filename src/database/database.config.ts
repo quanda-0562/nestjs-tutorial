@@ -2,6 +2,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { User } from '../users/entities/user.entity';
 import { Article } from '../articles/entities/article.entity';
+import { Comment } from '../articles/entities/comment.entity';
 
 export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOptions => {
   const nodeEnv = configService.get<string>('NODE_ENV', 'development');
@@ -15,7 +16,7 @@ export const getTypeOrmConfig = (configService: ConfigService): TypeOrmModuleOpt
     username: configService.get<string>('DATABASE_USER', 'postgres'),
     password: configService.get<string>('DATABASE_PASSWORD', ''),
     database: configService.get<string>('DATABASE_NAME', 'nestjs_tutorial'),
-    entities: [User, Article],
+    entities: [User, Article, Comment],
     synchronize: nodeEnv === 'test',
     dropSchema: nodeEnv === 'test',
     migrations: nodeEnv !== 'test' ? ['dist/migrations/*.js'] : [],

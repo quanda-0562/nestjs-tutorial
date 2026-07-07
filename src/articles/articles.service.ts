@@ -8,10 +8,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Article } from './entities/article.entity';
+import { Comment } from './entities/comment.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { User } from '../users/entities/user.entity';
 import { ArticleDto } from './dto/article-response.dto';
+import { CommentDto } from './dto/comment.dto';
 import { slugify } from '../common/utils/slugify';
 import { t } from '../common/utils/i18n.utils';
 
@@ -31,6 +33,8 @@ export class ArticlesService {
   constructor(
     @InjectRepository(Article)
     private articlesRepository: Repository<Article>,
+    @InjectRepository(Comment)
+    private commentsRepository: Repository<Comment>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
@@ -379,6 +383,115 @@ export class ArticlesService {
     }
   }
 
+  async addComment(slug: string, body: string, currentUser: User): Promise<CommentDto> {
+    try {
+      const article = await this.articlesRepository.findOne({
+        where: { slug },
+      });
+
+      if (!article) {
+        this.logger.warn(`Article not found: ${slug}`);
+        throw new NotFoundException(t('articles.notFound', { slug }));
+      }
+
+      const author = await this.usersRepository.findOne({
+        where: { id: currentUser.id },
+      });
+
+      if (!author) {
+        this.logger.warn(`User not found: ${currentUser.id}`);
+        throw new NotFoundException(t('articles.userNotFound'));
+      }
+
+      const comment = this.commentsRepository.create({
+        body,
+        article,
+        articleId: article.id,
+        author,
+        authorId: author.id,
+      });
+
+      const savedComment = await this.commentsRepository.save(comment);
+      this.logger.log(`Comment created for article ${slug} by user ${currentUser.id}`);
+
+      return this.toCommentDto(savedComment);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Add comment error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
+  async getComments(slug: string): Promise<CommentDto[]> {
+    try {
+      const article = await this.articlesRepository.findOne({
+        where: { slug },
+      });
+
+      if (!article) {
+        this.logger.warn(`Article not found: ${slug}`);
+        throw new NotFoundException(t('articles.notFound', { slug }));
+      }
+
+      const comments = await this.commentsRepository.find({
+        where: { articleId: article.id },
+        relations: ['author'],
+        order: { createdAt: 'DESC' },
+      });
+
+      return comments.map((comment) => this.toCommentDto(comment));
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Get comments error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
+  async deleteComment(slug: string, commentId: number, currentUser: User): Promise<void> {
+    try {
+      const article = await this.articlesRepository.findOne({
+        where: { slug },
+      });
+
+      if (!article) {
+        this.logger.warn(`Article not found: ${slug}`);
+        throw new NotFoundException(t('articles.notFound', { slug }));
+      }
+
+      const comment = await this.commentsRepository.findOne({
+        where: {
+          id: commentId,
+          articleId: article.id,
+        },
+      });
+
+      if (!comment) {
+        this.logger.warn(`Comment not found: ${commentId} on article ${slug}`);
+        throw new NotFoundException(t('comments.notFound'));
+      }
+
+      if (comment.authorId !== currentUser.id) {
+        this.logger.warn(
+          `Unauthorized delete comment attempt: user ${currentUser.id} tried to delete comment ${commentId}`,
+        );
+        throw new ForbiddenException(t('comments.cannotDelete'));
+      }
+
+      await this.commentsRepository.remove(comment);
+      this.logger.log(`Comment deleted: ${commentId} on article ${slug}`);
+    } catch (error) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
+        throw error;
+      }
+      this.logger.error(`Delete comment error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
   private toArticleDto(
     article: Article,
     currentUser?: User,
@@ -399,6 +512,20 @@ export class ArticlesService {
         bio: article.author.bio,
         image: article.author.image,
         following: false, // This should be implemented based on follow logic
+      },
+    };
+  }
+
+  private toCommentDto(comment: Comment): CommentDto {
+    return {
+      id: comment.id,
+      createdAt: comment.createdAt?.toISOString() || new Date().toISOString(),
+      body: comment.body,
+      author: {
+        username: comment.author.username,
+        bio: comment.author.bio,
+        image: comment.author.image,
+        following: false,
       },
     };
   }
