@@ -18,7 +18,13 @@ import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { SingleArticleResponseDto, MultipleArticlesResponseDto, ArticleDto } from './dto/article-response.dto';
 import { ListArticlesQueryDto } from './dto/list-articles-query.dto';
+import {
+  CreateCommentDto,
+  MultipleCommentsResponseDto,
+  SingleCommentResponseDto,
+} from './dto/comment.dto';
 import { JwtAuthGuard } from '../common/guards/jwt.guard';
+import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt.guard';
 import { User } from '../users/entities/user.entity';
 
 /**
@@ -248,5 +254,57 @@ export class ArticlesController {
   ): Promise<SingleArticleResponseDto> {
     const article = await this.articlesService.unfavorite(slug, req.user);
     return { article };
+  }
+
+  @Post(':slug/comments')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Add a comment to an article' })
+  @ApiResponse({
+    status: 201,
+    description: 'Comment created successfully',
+    type: SingleCommentResponseDto,
+  })
+  async addComment(
+    @Param('slug') slug: string,
+    @Body() createCommentDto: CreateCommentDto,
+    @Request() req: { user: User },
+  ): Promise<SingleCommentResponseDto> {
+    const comment = await this.articlesService.addComment(
+      slug,
+      createCommentDto.comment.body,
+      req.user,
+    );
+    return { comment };
+  }
+
+  @Get(':slug/comments')
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiOperation({ summary: 'Get comments for an article' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comments for the article',
+    type: MultipleCommentsResponseDto,
+  })
+  async getComments(@Param('slug') slug: string): Promise<MultipleCommentsResponseDto> {
+    const comments = await this.articlesService.getComments(slug);
+    return { comments };
+  }
+
+  @Delete(':slug/comments/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a comment from an article' })
+  @ApiResponse({
+    status: 204,
+    description: 'Comment deleted successfully',
+  })
+  async deleteComment(
+    @Param('slug') slug: string,
+    @Param('id') id: string,
+    @Request() req: { user: User },
+  ): Promise<void> {
+    await this.articlesService.deleteComment(slug, parseInt(id, 10), req.user);
   }
 }

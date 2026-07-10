@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ArticlesService } from './articles.service';
 import { Article } from './entities/article.entity';
+import { Comment } from './entities/comment.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -10,6 +11,7 @@ import { UpdateArticleDto } from './dto/update-article.dto';
 describe('ArticlesService', () => {
   let service: ArticlesService;
   let mockArticleRepository: any;
+  let mockCommentRepository: any;
   let mockUserRepository: any;
 
   const mockUser: User = {
@@ -38,6 +40,16 @@ describe('ArticlesService', () => {
     author: mockUser,
     authorId: 1,
     favoritedBy: [],
+  };
+
+  const mockComment: Comment = {
+    id: 1,
+    body: 'His name was my name too.',
+    createdAt: new Date(),
+    article: mockArticle,
+    articleId: mockArticle.id,
+    author: mockUser,
+    authorId: mockUser.id,
   };
 
   /**
@@ -73,6 +85,14 @@ describe('ArticlesService', () => {
       createQueryBuilder: jest.fn(),
     };
 
+    mockCommentRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      find: jest.fn(),
+      findOne: jest.fn(),
+      remove: jest.fn(),
+    };
+
     mockUserRepository = {
       findOne: jest.fn(),
     };
@@ -83,6 +103,10 @@ describe('ArticlesService', () => {
         {
           provide: getRepositoryToken(Article),
           useValue: mockArticleRepository,
+        },
+        {
+          provide: getRepositoryToken(Comment),
+          useValue: mockCommentRepository,
         },
         {
           provide: getRepositoryToken(User),
@@ -525,6 +549,113 @@ describe('ArticlesService', () => {
 
       expect(result.favorited).toBe(false);
       expect(mockArticleRepository.save).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('addComment', () => {
+    it('should add a comment successfully', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockCommentRepository.create.mockReturnValue(mockComment);
+      mockCommentRepository.save.mockResolvedValue(mockComment);
+
+      const result = await service.addComment(
+        'test-article',
+        'His name was my name too.',
+        mockUser,
+      );
+
+      expect(result.body).toBe('His name was my name too.');
+      expect(result.author.username).toBe('testuser');
+      expect(mockCommentRepository.create).toHaveBeenCalledWith({
+        body: 'His name was my name too.',
+        article: mockArticle,
+        articleId: mockArticle.id,
+        author: mockUser,
+        authorId: mockUser.id,
+      });
+      expect(mockCommentRepository.save).toHaveBeenCalledWith(mockComment);
+    });
+
+    it('should throw NotFoundException if article does not exist', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.addComment('missing-article', 'Test comment', mockUser),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if current user does not exist', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.addComment('test-article', 'Test comment', mockUser),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getComments', () => {
+    it('should return comments for an article', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockCommentRepository.find.mockResolvedValue([mockComment]);
+
+      const result = await service.getComments('test-article');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].body).toBe('His name was my name too.');
+      expect(mockCommentRepository.find).toHaveBeenCalledWith({
+        where: { articleId: mockArticle.id },
+        relations: ['author'],
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('should throw NotFoundException if article is missing while fetching comments', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.getComments('missing-article')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('deleteComment', () => {
+    it('should delete a comment successfully', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockCommentRepository.findOne.mockResolvedValue(mockComment);
+      mockCommentRepository.remove.mockResolvedValue(mockComment);
+
+      await service.deleteComment('test-article', 1, mockUser);
+
+      expect(mockCommentRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 1,
+          articleId: mockArticle.id,
+        },
+      });
+      expect(mockCommentRepository.remove).toHaveBeenCalledWith(mockComment);
+    });
+
+    it('should throw NotFoundException if comment does not exist', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockCommentRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.deleteComment('test-article', 99, mockUser)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw ForbiddenException if user is not the comment author', async () => {
+      mockArticleRepository.findOne.mockResolvedValue(mockArticle);
+      mockCommentRepository.findOne.mockResolvedValue({
+        ...mockComment,
+        authorId: 2,
+      });
+
+      await expect(service.deleteComment('test-article', 1, mockUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

@@ -40,5 +40,9 @@
     "cannotUpdate": "You can only update your own articles",
     "cannotDelete": "You can only delete your own articles",
     "userNotFound": "User not found"
+  },
+  "comments": {
+    "notFound": "Comment not found",
+    "cannotDelete": "You can only delete your own comments"
   }
 }

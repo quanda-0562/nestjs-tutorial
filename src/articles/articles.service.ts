@@ -8,10 +8,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Article } from './entities/article.entity';
+import { Comment } from './entities/comment.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { User } from '../users/entities/user.entity';
 import { ArticleDto } from './dto/article-response.dto';
+import { CommentDto } from './dto/comment.dto';
 import { slugify } from '../common/utils/slugify';
 import { t } from '../common/utils/i18n.utils';
 
@@ -31,6 +33,8 @@ export class ArticlesService {
   constructor(
     @InjectRepository(Article)
     private articlesRepository: Repository<Article>,
+    @InjectRepository(Comment)
+    private commentsRepository: Repository<Comment>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
@@ -161,29 +165,12 @@ export class ArticlesService {
    * @throws NotFoundException if article not found
    */
   async findOne(slug: string, currentUser?: User): Promise<ArticleDto> {
-    try {
-      const article = await this.articlesRepository.findOne({
-        where: { slug },
-        relations: ['author', 'favoritedBy'],
-      });
+    const article = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+    const isFavorited = currentUser
+      ? article.favoritedBy?.some((u) => u.id === currentUser.id)
+      : false;
 
-      if (!article) {
-        this.logger.warn(`Article not found: ${slug}`);
-        throw new NotFoundException(t('articles.notFound', { slug }));
-      }
-
-      const isFavorited = currentUser
-        ? article.favoritedBy?.some((u) => u.id === currentUser.id)
-        : false;
-
-      return this.toArticleDto(article, currentUser, isFavorited);
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Fetch article error: ${error}`);
-      throw new BadRequestException(t('common.error'));
-    }
+    return this.toArticleDto(article, currentUser, isFavorited);
   }
 
   /**
@@ -201,22 +188,14 @@ export class ArticlesService {
     updateArticleDto: UpdateArticleDto,
     currentUser: User,
   ): Promise<ArticleDto> {
+    const article = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+
+    if (article.authorId !== currentUser.id) {
+      this.logger.warn(`Unauthorized update attempt: user ${currentUser.id} tried to update article ${slug}`);
+      throw new ForbiddenException(t('articles.cannotUpdate'));
+    }
+
     try {
-      const article = await this.articlesRepository.findOne({
-        where: { slug },
-        relations: ['author', 'favoritedBy'],
-      });
-
-      if (!article) {
-        this.logger.warn(`Article not found: ${slug}`);
-        throw new NotFoundException(t('articles.notFound', { slug }));
-      }
-
-      if (article.authorId !== currentUser.id) {
-        this.logger.warn(`Unauthorized update attempt: user ${currentUser.id} tried to update article ${slug}`);
-        throw new ForbiddenException(t('articles.cannotUpdate'));
-      }
-
       // Slug is immutable after creation to preserve existing links/bookmarks
       Object.assign(article, updateArticleDto);
       const updatedArticle = await this.articlesRepository.save(article);
@@ -225,9 +204,6 @@ export class ArticlesService {
       const isFavorited = article.favoritedBy?.some((u) => u.id === currentUser.id);
       return this.toArticleDto(updatedArticle, currentUser, isFavorited);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
-      }
       this.logger.error(`Update article error: ${error}`);
       throw new BadRequestException(t('common.error'));
     }
@@ -241,28 +217,17 @@ export class ArticlesService {
    * @throws ForbiddenException if user is not the article author
    */
   async remove(slug: string, currentUser: User): Promise<void> {
+    const article = await this.findArticleOrThrow(slug, ['author']);
+
+    if (article.authorId !== currentUser.id) {
+      this.logger.warn(`Unauthorized delete attempt: user ${currentUser.id} tried to delete article ${slug}`);
+      throw new ForbiddenException(t('articles.cannotDelete'));
+    }
+
     try {
-      const article = await this.articlesRepository.findOne({
-        where: { slug },
-        relations: ['author'],
-      });
-
-      if (!article) {
-        this.logger.warn(`Article not found: ${slug}`);
-        throw new NotFoundException(t('articles.notFound', { slug }));
-      }
-
-      if (article.authorId !== currentUser.id) {
-        this.logger.warn(`Unauthorized delete attempt: user ${currentUser.id} tried to delete article ${slug}`);
-        throw new ForbiddenException(t('articles.cannotDelete'));
-      }
-
       await this.articlesRepository.remove(article);
       this.logger.log(`Article deleted successfully: ${slug}`);
     } catch (error) {
-      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
-        throw error;
-      }
       this.logger.error(`Delete article error: ${error}`);
       throw new BadRequestException(t('common.error'));
     }
@@ -276,52 +241,35 @@ export class ArticlesService {
    * @throws NotFoundException if article or user not found
    */
   async favorite(slug: string, currentUser: User): Promise<ArticleDto> {
-    try {
-      const article = await this.articlesRepository.findOne({
-        where: { slug },
-        relations: ['author', 'favoritedBy'],
-      });
+    const article = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+    const user = await this.usersRepository.findOne({
+      where: { id: currentUser.id },
+    });
 
-      if (!article) {
-        this.logger.warn(`Article not found: ${slug}`);
-        throw new NotFoundException(t('articles.notFound', { slug }));
-      }
+    if (!user) {
+      this.logger.warn(`User not found: ${currentUser.id}`);
+      throw new NotFoundException(t('articles.userNotFound'));
+    }
 
-      const user = await this.usersRepository.findOne({
-        where: { id: currentUser.id },
-      });
+    const isAlreadyFavorited = article.favoritedBy?.some(
+      (u) => u.id === currentUser.id,
+    );
 
-      if (!user) {
-        this.logger.warn(`User not found: ${currentUser.id}`);
-        throw new NotFoundException(t('articles.userNotFound'));
-      }
-
-      const isAlreadyFavorited = article.favoritedBy?.some(
-        (u) => u.id === currentUser.id,
-      );
-
-      if (!isAlreadyFavorited) {
-        article.favoritedBy.push(user);
-        article.favoritesCount += 1;
-        await this.articlesRepository.save(article);
-
-        // Reload article with updated relations to ensure client receives correct state
-        const updatedArticle = await this.articlesRepository.findOne({
-          where: { slug },
-          relations: ['author', 'favoritedBy'],
-        });
-
-        this.logger.log(`Article favorited: ${slug} by user ${currentUser.id}`);
-        if (updatedArticle) {
-          return this.toArticleDto(updatedArticle, currentUser, true);
-        }
-      }
-
+    if (isAlreadyFavorited) {
       return this.toArticleDto(article, currentUser, true);
+    }
+
+    try {
+      article.favoritedBy.push(user);
+      article.favoritesCount += 1;
+      await this.articlesRepository.save(article);
+
+      // Reload article with updated relations to ensure client receives correct state
+      const updatedArticle = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+
+      this.logger.log(`Article favorited: ${slug} by user ${currentUser.id}`);
+      return this.toArticleDto(updatedArticle, currentUser, true);
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
       this.logger.error(`Favorite article error: ${error}`);
       throw new BadRequestException(t('common.error'));
     }
@@ -335,48 +283,151 @@ export class ArticlesService {
    * @throws NotFoundException if article not found
    */
   async unfavorite(slug: string, currentUser: User): Promise<ArticleDto> {
-    try {
-      const article = await this.articlesRepository.findOne({
-        where: { slug },
-        relations: ['author', 'favoritedBy'],
-      });
+    const article = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+    const isFavorited = article.favoritedBy?.some(
+      (u) => u.id === currentUser.id,
+    );
 
-      if (!article) {
-        this.logger.warn(`Article not found: ${slug}`);
-        throw new NotFoundException(t('articles.notFound', { slug }));
-      }
-
-      const isFavorited = article.favoritedBy?.some(
-        (u) => u.id === currentUser.id,
-      );
-
-      if (isFavorited) {
-        article.favoritedBy = article.favoritedBy.filter(
-          (u) => u.id !== currentUser.id,
-        );
-        article.favoritesCount = Math.max(0, article.favoritesCount - 1);
-        await this.articlesRepository.save(article);
-
-        // Reload article with updated relations to ensure client receives correct state
-        const updatedArticle = await this.articlesRepository.findOne({
-          where: { slug },
-          relations: ['author', 'favoritedBy'],
-        });
-
-        this.logger.log(`Article unfavorited: ${slug} by user ${currentUser.id}`);
-        if (updatedArticle) {
-          return this.toArticleDto(updatedArticle, currentUser, false);
-        }
-      }
-
+    if (!isFavorited) {
       return this.toArticleDto(article, currentUser, false);
+    }
+
+    try {
+      article.favoritedBy = article.favoritedBy.filter(
+        (u) => u.id !== currentUser.id,
+      );
+      article.favoritesCount = Math.max(0, article.favoritesCount - 1);
+      await this.articlesRepository.save(article);
+
+      // Reload article with updated relations to ensure client receives correct state
+      const updatedArticle = await this.findArticleOrThrow(slug, ['author', 'favoritedBy']);
+
+      this.logger.log(`Article unfavorited: ${slug} by user ${currentUser.id}`);
+      return this.toArticleDto(updatedArticle, currentUser, false);
     } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
       this.logger.error(`Unfavorite article error: ${error}`);
       throw new BadRequestException(t('common.error'));
     }
+  }
+
+  /**
+   * Add a comment to an article
+   * @param slug - The target article slug
+   * @param body - The comment body
+   * @param currentUser - The authenticated user creating the comment
+   * @returns The created comment as CommentDto
+   * @throws NotFoundException if article or user not found
+   */
+  async addComment(slug: string, body: string, currentUser: User): Promise<CommentDto> {
+    const article = await this.findArticleOrThrow(slug);
+    const author = await this.usersRepository.findOne({
+      where: { id: currentUser.id },
+    });
+
+    if (!author) {
+      this.logger.warn(`User not found: ${currentUser.id}`);
+      throw new NotFoundException(t('articles.userNotFound'));
+    }
+
+    try {
+      const comment = this.commentsRepository.create({
+        body,
+        article,
+        articleId: article.id,
+        author,
+        authorId: author.id,
+      });
+
+      const savedComment = await this.commentsRepository.save(comment);
+      this.logger.log(`Comment created for article ${slug} by user ${currentUser.id}`);
+
+      return this.toCommentDto(savedComment);
+    } catch (error) {
+      this.logger.error(`Add comment error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
+  /**
+   * Get all comments for an article
+   * @param slug - The target article slug
+   * @returns The article comments ordered by newest first
+   * @throws NotFoundException if article not found
+   */
+  async getComments(slug: string): Promise<CommentDto[]> {
+    const article = await this.findArticleOrThrow(slug);
+
+    try {
+      const comments = await this.commentsRepository.find({
+        where: { articleId: article.id },
+        relations: ['author'],
+        order: { createdAt: 'DESC' },
+      });
+
+      return comments.map((comment) => this.toCommentDto(comment));
+    } catch (error) {
+      this.logger.error(`Get comments error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
+  /**
+   * Delete a comment from an article
+   * @param slug - The target article slug
+   * @param commentId - The comment id to delete
+   * @param currentUser - The authenticated user requesting deletion
+   * @throws NotFoundException if article or comment not found
+   * @throws ForbiddenException if the user is not the comment author
+   */
+  async deleteComment(slug: string, commentId: number, currentUser: User): Promise<void> {
+    const article = await this.findArticleOrThrow(slug);
+    const comment = await this.commentsRepository.findOne({
+      where: {
+        id: commentId,
+        articleId: article.id,
+      },
+    });
+
+    if (!comment) {
+      this.logger.warn(`Comment not found: ${commentId} on article ${slug}`);
+      throw new NotFoundException(t('comments.notFound'));
+    }
+
+    if (comment.authorId !== currentUser.id) {
+      this.logger.warn(
+        `Unauthorized delete comment attempt: user ${currentUser.id} tried to delete comment ${commentId}`,
+      );
+      throw new ForbiddenException(t('comments.cannotDelete'));
+    }
+
+    try {
+      await this.commentsRepository.remove(comment);
+      this.logger.log(`Comment deleted: ${commentId} on article ${slug}`);
+    } catch (error) {
+      this.logger.error(`Delete comment error: ${error}`);
+      throw new BadRequestException(t('common.error'));
+    }
+  }
+
+  /**
+   * Find an article by slug or throw a 404 error
+   * @param slug - The article slug
+   * @param relations - Optional relations to eager load
+   * @returns The matching article entity
+   * @throws NotFoundException if article not found
+   */
+  private async findArticleOrThrow(slug: string, relations: string[] = []): Promise<Article> {
+    const article = await this.articlesRepository.findOne({
+      where: { slug },
+      relations,
+    });
+
+    if (!article) {
+      this.logger.warn(`Article not found: ${slug}`);
+      throw new NotFoundException(t('articles.notFound', { slug }));
+    }
+
+    return article;
   }
 
   private toArticleDto(
@@ -399,6 +450,20 @@ export class ArticlesService {
         bio: article.author.bio,
         image: article.author.image,
         following: false, // This should be implemented based on follow logic
+      },
+    };
+  }
+
+  private toCommentDto(comment: Comment): CommentDto {
+    return {
+      id: comment.id,
+      createdAt: comment.createdAt?.toISOString() || new Date().toISOString(),
+      body: comment.body,
+      author: {
+        username: comment.author.username,
+        bio: comment.author.bio,
+        image: comment.author.image,
+        following: false,
       },
     };
   }
